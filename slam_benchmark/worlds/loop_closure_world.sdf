@@ -1,0 +1,200 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="loop_closure_world">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>2.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground Plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>100000.0</mu>
+                <mu2>100000.0</mu2>
+                <slip1>0.0</slip1>
+                <slip2>0.0</slip2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- OUTER WALLS — 10×10 m total (inner face at ±4.9 m) -->
+    <!-- North Wall -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 5.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10 0.2 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- South Wall -->
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -5.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10 0.2 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- East Wall -->
+    <model name="wall_east">
+      <static>true</static>
+      <pose>5.0 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 10 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 10 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- West Wall -->
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-5.0 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 10 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 10 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- INNER WALLS — four freestanding segments arranged in an open offset pattern
+         n1: center(-1.5, 2.3), 4.0×0.2 m  → X∈[-3.5, 0.5], Y∈[2.2, 2.4]
+         s1: center( 1.5,-2.3), 4.0×0.2 m  → X∈[-0.5, 3.5], Y∈[-2.4,-2.2]  ← east face X=3.5
+         e1: center( 2.3, 1.5), rotated 90° → X∈[2.2, 2.4], Y∈[-0.5, 3.5]
+         w1: center(-2.3,-1.5), rotated 90° → X∈[-2.4,-2.2], Y∈[-3.5, 0.5]
+    -->
+    <!-- Inner North segment -->
+    <model name="inner_wall_n1">
+      <static>true</static>
+      <pose>-1.5 2.3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>4.0 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>4.0 0.2 1</size></box></geometry>
+          <material><ambient>0.3 0.5 0.7 1</ambient><diffuse>0.3 0.5 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Inner South segment -->
+    <model name="inner_wall_s1">
+      <static>true</static>
+      <pose>1.5 -2.3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>4.0 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>4.0 0.2 1</size></box></geometry>
+          <material><ambient>0.3 0.5 0.7 1</ambient><diffuse>0.3 0.5 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Inner East segment -->
+    <model name="inner_wall_e1">
+      <static>true</static>
+      <pose>2.3 1.5 0.5 0 0 1.5708</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>4.0 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>4.0 0.2 1</size></box></geometry>
+          <material><ambient>0.3 0.5 0.7 1</ambient><diffuse>0.3 0.5 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Inner West segment -->
+    <model name="inner_wall_w1">
+      <static>true</static>
+      <pose>-2.3 -1.5 0.5 0 0 1.5708</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>4.0 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>4.0 0.2 1</size></box></geometry>
+          <material><ambient>0.3 0.5 0.7 1</ambient><diffuse>0.3 0.5 0.7 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Corner pillars — 0.35×0.35 m at (±3.0, ±3.0) -->
+    <model name="pillar_ne">
+      <static>true</static>
+      <pose>3.0 3.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.35 0.35 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.35 0.35 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_nw">
+      <static>true</static>
+      <pose>-3.0 3.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.35 0.35 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.35 0.35 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_se">
+      <static>true</static>
+      <pose>3.0 -3.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.35 0.35 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.35 0.35 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_sw">
+      <static>true</static>
+      <pose>-3.0 -3.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.35 0.35 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.35 0.35 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

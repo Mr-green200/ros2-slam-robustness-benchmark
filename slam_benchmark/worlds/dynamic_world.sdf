@@ -1,0 +1,247 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="dynamic_world">
+
+    <!--
+    8×8 m room (outer wall centres ±4.0 m, inner face ±3.9 m).
+    Spawn: (0, 0).  Designed for dynamic obstacle analysis: SLAM robustness under dynamic LiDAR obstacles.
+
+    LANE LAYOUT (y-axis, north = +y)
+    ─────────────────────────────────────────────────────────────────────
+      y = +3.2  robot perimeter-north lane  ─────────────────────────────
+      y = +2.2  CYLINDER 1 (E→W then W→E)  · · · · · · · · · · · · · ·
+      y =  0.0  robot center / J-hook mid   ─────────────────────────────
+      y = +0.7  CYLINDER 2 (W→E then E→W)  · · · · · · · · · · · · · ·
+      y = -2.3  CYLINDER 3 (W→E then W→E)  · · · · · · · · · · · · · ·
+      y = -3.2  robot perimeter-south lane  ─────────────────────────────
+
+    Pillars at (±1.5, ±1.5), 0.4×0.4 m.  Path at x/y = ±3.2 and 0.0 gives
+    min 1.5 m clearance from all pillars (|3.2-1.5|=1.7 m, |0-1.5|=1.5 m).
+    Cylinders travel x ∈ [-2.5, +2.5].  Since cylinders are kinematic actors
+    (ghost), the robot may pass through them — only LiDAR is affected.
+
+    Robot coverage path (9 waypoints, double-rectangle, equal L/R turns):
+      Spawn(0,0)→P0(3.2,0)→P1(3.2,-3.2)→P2(-3.2,-3.2)→P3(-3.2,0)→
+      P4(3.2,0)→P5(3.2,3.2)→P6(-3.2,3.2)→P7(-3.2,0)→P8(0,0)
+    Two rectangles sharing the y=0 centre line.  Robot spawns facing east →
+    P0(3.2,0) is directly ahead, no initial turn.
+    Lap return: P8(0,0)→P0(3.2,0) eastward 3.2 m (no turn).
+    Turn balance: 4R at P0,P1,P2,P3 (bottom CW) + 4L at P4,P5,P6,P7 (top CCW) = equal.
+    -->
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>2.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system"           name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system"     name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-contact-system"           name="gz::sim::systems::Contact"/>
+    <!-- Sensors plugin required for GPU LiDAR to process scans (lidar hitbox) -->
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground Plane — high friction so robot wheels do not slip -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>100000.0</mu>
+                <mu2>100000.0</mu2>
+                <slip1>0.0</slip1>
+                <slip2>0.0</slip2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
+          <material><ambient>0.85 0.85 0.85 1</ambient><diffuse>0.85 0.85 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- OUTER WALLS — 8×8 m room (wall centres ±4.0 m, inner face ±3.9 m) -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 4.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>8.4 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>8.4 0.2 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -4.0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>8.4 0.2 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>8.4 0.2 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_east">
+      <static>true</static>
+      <pose>4.0 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 8 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 8 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-4.0 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 8 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 8 1</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- CORNER PILLARS — 0.4×0.4 m squares at (±1.5, ±1.5); static LiDAR landmarks -->
+    <model name="pillar_ne">
+      <static>true</static>
+      <pose>1.5 1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.4 0.4 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.4 0.4 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_nw">
+      <static>true</static>
+      <pose>-1.5 1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.4 0.4 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.4 0.4 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_se">
+      <static>true</static>
+      <pose>1.5 -1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.4 0.4 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.4 0.4 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="pillar_sw">
+      <static>true</static>
+      <pose>-1.5 -1.5 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.4 0.4 1</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.4 0.4 1</size></box></geometry>
+          <material><ambient>0.7 0.4 0.2 1</ambient><diffuse>0.7 0.4 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+    DYNAMIC CYLINDERS — radius 0.2 m, height 1.0 m.  Implemented as <actor> elements
+    (kinematic / ghost): no physics contact with the robot, so the robot is never displaced
+    and SLAM never receives a spurious map→odom correction.  The visual geometry IS present
+    in the ogre2 scene, so the GPU LiDAR detects them exactly as real obstacles.
+
+    All three travel E↔W at 0.5 m/s (10 s per 5 m leg, 20 s cycle) in dedicated y-lanes
+    that interleave with — but never cross — the robot path segments.
+
+    cylinder_1  y=+2.2  W→E→W (red)    between robot lanes y=+3.2 and y= 0.0
+    cylinder_2  y=+0.7  E→W→E (green)  between robot lanes y=+3.2 and y= 0.0
+    cylinder_3  y=-2.3  W→E→W (blue)   between robot perimeter-south lane y=-3.2 and J-hook x=0
+    -->
+
+    <!-- cylinder_1: W→E→W at y=+2.2 (red), 0.5 m/s, 20 s cycle -->
+    <actor name="cylinder_1">
+      <pose>0 0 0 0 0 0</pose>
+      <link name="body">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>1.0</length></cylinder></geometry>
+          <material><ambient>0.85 0.15 0.15 1</ambient><diffuse>0.85 0.15 0.15 1</diffuse></material>
+        </visual>
+      </link>
+      <script>
+        <loop>true</loop>
+        <delay_start>0.0</delay_start>
+        <auto_start>true</auto_start>
+        <trajectory id="0" type="__default__">
+          <waypoint><time>0</time><pose>-2.5  2.2 0.5 0 0 0</pose></waypoint>
+          <waypoint><time>10</time><pose> 2.5  2.2 0.5 0 0 0</pose></waypoint>
+          <waypoint><time>20</time><pose>-2.5  2.2 0.5 0 0 0</pose></waypoint>
+        </trajectory>
+      </script>
+    </actor>
+
+    <!-- cylinder_2: E→W→E at y=+0.7 (green), opposite phase to cylinder_1 -->
+    <actor name="cylinder_2">
+      <pose>0 0 0 0 0 0</pose>
+      <link name="body">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>1.0</length></cylinder></geometry>
+          <material><ambient>0.15 0.75 0.15 1</ambient><diffuse>0.15 0.75 0.15 1</diffuse></material>
+        </visual>
+      </link>
+      <script>
+        <loop>true</loop>
+        <delay_start>0.0</delay_start>
+        <auto_start>true</auto_start>
+        <trajectory id="0" type="__default__">
+          <waypoint><time>0</time><pose> 2.5  0.7 0.5 0 0 0</pose></waypoint>
+          <waypoint><time>10</time><pose>-2.5  0.7 0.5 0 0 0</pose></waypoint>
+          <waypoint><time>20</time><pose> 2.5  0.7 0.5 0 0 0</pose></waypoint>
+        </trajectory>
+      </script>
+    </actor>
+
+    <!-- cylinder_3: W→E→W at y=-2.3 (blue) -->
+    <actor name="cylinder_3">
+      <pose>0 0 0 0 0 0</pose>
+      <link name="body">
+        <visual name="visual">
+          <geometry><cylinder><radius>0.2</radius><length>1.0</length></cylinder></geometry>
+          <material><ambient>0.15 0.15 0.85 1</ambient><diffuse>0.15 0.15 0.85 1</diffuse></material>
+        </visual>
+      </link>
+      <script>
+        <loop>true</loop>
+        <delay_start>0.0</delay_start>
+        <auto_start>true</auto_start>
+        <trajectory id="0" type="__default__">
+          <waypoint><time>0</time><pose>-2.5 -2.3 0.5 0 0 0</pose></waypoint>
+          <waypoint><time>10</time><pose> 2.5 -2.3 0.5 0 0 0</pose></waypoint>
+          <waypoint><time>20</time><pose>-2.5 -2.3 0.5 0 0 0</pose></waypoint>
+        </trajectory>
+      </script>
+    </actor>
+
+  </world>
+</sdf>
